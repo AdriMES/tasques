@@ -23,3 +23,31 @@ const statsEnCursEl = document.getElementById("statsEnCurs");
 const statsFetEl = document.getElementById("statsFet");
 const percentatgeEl = document.getElementById("percentatgeCompletades");
 const barraEl = document.getElementById("barraCompletades");
+
+//MODEL DE TASQUES
+
+function crearTasca({ titol, descripcio, prioritat, dataVenciment }) {
+  return {
+    id: Date.now(),
+    titol,
+    descripcio,
+    prioritat, // baixa | mitjana | alta
+    dataVenciment,
+    estat: "perFer",
+    creatEl: new Date().toISOString()
+  };
+}
+
+//PERSISTÈNCIA A LOCALSTORAGE
+
+function carregarTasques() {
+  const dades = localStorage.getItem(STORAGE_KEY);
+  return dades ? JSON.parse(dades) : [];
+}
+
+function guardarTasques() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasques));
+}
+
+
+
