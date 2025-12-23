@@ -1,11 +1,9 @@
-//CONFIGURACIÓ I ESTAT
-
+// CONFIGURACIÓ I ESTAT
 const STORAGE_KEY = "tasquesKanban";
 let tasques = [];
-let tascaEditantId = null;
+let tascaEditant = null; // 🔑 referència directa a la tasca que s’està editant
 
-
-//SELECTORS DOM
+// SELECTORS DOM
 const form = document.querySelector("form");
 const titolInput = form.querySelector("input[type='text']");
 const descripcioInput = form.querySelector("textarea");
@@ -15,7 +13,7 @@ const dataInput = form.querySelector("input[type='date']");
 const colPerFer = document.getElementById("perFer");
 const colEnCurs = document.getElementById("enCurs");
 const colFet = document.getElementById("fet");
-const botoSubmit = document.querySelector("form button[type='submit']");
+const botoSubmit = form.querySelector("button[type='submit']");
 
 // Estadístiques
 const totalTasquesEl = document.getElementById("totalTasques");
@@ -25,11 +23,10 @@ const statsFetEl = document.getElementById("statsFet");
 const percentatgeEl = document.getElementById("percentatgeCompletades");
 const barraEl = document.getElementById("barraCompletades");
 
-//MODEL DE TASQUES
-
+// MODEL DE TASQUES
 function crearTasca({ titol, descripcio, prioritat, dataVenciment }) {
   return {
-    id: Date.now(),
+    id: Date.now(), // Number únic
     titol,
     descripcio,
     prioritat, // baixa | mitjana | alta
@@ -39,20 +36,21 @@ function crearTasca({ titol, descripcio, prioritat, dataVenciment }) {
   };
 }
 
-//PERSISTÈNCIA A LOCALSTORAGE
-
+// PERSISTÈNCIA A LOCALSTORAGE
 function carregarTasques() {
   const dades = localStorage.getItem(STORAGE_KEY);
-  return dades ? JSON.parse(dades) : [];
+  if (!dades) return [];
+  return JSON.parse(dades).map(t => ({
+    ...t,
+    id: Number(t.id) // assegurem que tots els IDs siguin Number
+  }));
 }
 
 function guardarTasques() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tasques));
 }
 
-
-//FORMULARI
-
+// FORMULARI
 form.addEventListener("submit", e => {
   e.preventDefault();
 
@@ -61,36 +59,39 @@ form.addEventListener("submit", e => {
     return;
   }
 
-  if (tascaEditantId) {
-    // EDITAR
-    const tasca = tasques.find(t => t.id === tascaEditantId);
-    tasca.titol = titolInput.value.trim();
-    tasca.descripcio = descripcioInput.value.trim();
-    tasca.prioritat = prioritatSelect.value.toLowerCase();
-    tasca.dataVenciment = dataInput.value;
+  // EDITAR TASCA EXISTENT
+  if (tascaEditant) {
+    tascaEditant.titol = titolInput.value.trim();
+    tascaEditant.descripcio = descripcioInput.value.trim();
+    tascaEditant.prioritat = prioritatSelect.value.toLowerCase();
+    tascaEditant.dataVenciment = dataInput.value;
 
-    tascaEditantId = null;
+    tascaEditant = null;
     botoSubmit.textContent = "Afegir tasca";
     botoSubmit.classList.remove("bg-yellow-600");
     botoSubmit.classList.add("bg-blue-600");
-  } else {
-    // CREAR
-    const nova = crearTasca({
-      titol: titolInput.value.trim(),
-      descripcio: descripcioInput.value.trim(),
-      prioritat: prioritatSelect.value.toLowerCase(),
-      dataVenciment: dataInput.value
-    });
-    tasques.push(nova);
+
+    guardarTasques();
+    renderTauler();
+    form.reset();
+    return; // 🔒 important
   }
 
+  // CREAR NOVA TASCA
+  const nova = crearTasca({
+    titol: titolInput.value.trim(),
+    descripcio: descripcioInput.value.trim(),
+    prioritat: prioritatSelect.value.toLowerCase(),
+    dataVenciment: dataInput.value
+  });
+
+  tasques.push(nova);
   guardarTasques();
   renderTauler();
   form.reset();
 });
 
-
-//RENDERITZACIÓ KANBAN
+// RENDERITZACIÓ KANBAN
 function renderTauler() {
   colPerFer.innerHTML = "";
   colEnCurs.innerHTML = "";
@@ -103,11 +104,11 @@ function renderTauler() {
     if (tasca.estat === "enCurs") colEnCurs.appendChild(card);
     if (tasca.estat === "fet") colFet.appendChild(card);
   });
+
+  actualitzarEstadistiques();
 }
 
-
- //CREAR TARGETA TASCA
-
+// CREAR TARGETA TASCA
 function crearCardTasca(tasca) {
   const card = document.createElement("div");
 
@@ -138,7 +139,7 @@ function crearCardTasca(tasca) {
     </select>
 
     <div class="flex gap-2">
-      <button type="button"class="editar flex-1 bg-yellow-500 hover:bg-yellow-600 text-white text-sm py-1 rounded">
+      <button type="button" class="editar flex-1 bg-yellow-500 hover:bg-yellow-600 text-white text-sm py-1 rounded">
         Editar
       </button>
       <button type="button" class="eliminar flex-1 bg-red-500 hover:bg-red-600 text-white text-sm py-1 rounded">
@@ -161,7 +162,7 @@ function crearCardTasca(tasca) {
     prioritatSelect.value = capitalitzar(tasca.prioritat);
     dataInput.value = tasca.dataVenciment;
 
-    tascaEditantId = tasca.id;
+    tascaEditant = tasca; // 🔑 referència directa a l’objecte
     botoSubmit.textContent = "Guardar canvis";
     botoSubmit.classList.remove("bg-blue-600");
     botoSubmit.classList.add("bg-yellow-600");
@@ -179,13 +180,11 @@ function crearCardTasca(tasca) {
   return card;
 }
 
-
 // UTILS
 function capitalitzar(text) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-//INICIALITZACIÓ
-carregarTasques();
+// INICIALITZACIÓ
+tasques = carregarTasques();
 renderTauler();
-
