@@ -15,6 +15,7 @@ const dataInput = form.querySelector("input[type='date']");
 const colPerFer = document.getElementById("perFer");
 const colEnCurs = document.getElementById("enCurs");
 const colFet = document.getElementById("fet");
+const botoSubmit = document.querySelector("form button[type='submit']");
 
 // Estadístiques
 const totalTasquesEl = document.getElementById("totalTasques");
